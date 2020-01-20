@@ -1,38 +1,19 @@
+#include <stdint.h>
+#include <stdio.h>
+#include <time.h>
 #include "generator.c"
+
+const uint64_t MAX_GNA_LENGTH = 100;
+const uint64_t N = 1000;
 
 int main(int argc, char** argv)
 {
-    void *handle;
-    int (*func_print_name)(const char*);
+	// create random instances
+	// crossover them
+	// mutate
+	// evaluate and do selection
 
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s animal_type\n", argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    if (strcmp(argv[1], "dog") == 0) {
-        handle = dlopen("./libdog.so", RTLD_LAZY);
-    } else {
-        fprintf(stderr, "Error: unknown animal type: %s\n", argv[1]);
-        return EXIT_FAILURE;
-    }
-    if (!handle) {
-        /* fail to load the library */
-        fprintf(stderr, "Error: %s\n", dlerror());
-        return EXIT_FAILURE;
-    }
-
-    *(int**)(&func_print_name) = dlsym(handle, "print_name");
-    if (!func_print_name) {
-        /* no such symbol */
-        fprintf(stderr, "Error: %s\n", dlerror());
-        dlclose(handle);
-        return EXIT_FAILURE;
-    }
-
-    int res = func_print_name(argv[1]);
-    printf("%d", res);
-    dlclose(handle);
-
-    return EXIT_SUCCESS;
+	init_genrand64(time(NULL));
+	printf("%llu \n", genrand64_int64());
+	return 0;
 }
