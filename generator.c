@@ -4,7 +4,7 @@
 #include <dlfcn.h>
 #include "mtgen.c"
 
-#define exprMAXSIZE 12
+#define exprMAXSIZE 200
 
 void genCode(char *expr, int indvNum)
 {
@@ -59,27 +59,28 @@ int idealfunc(int x, int y)
 #define EVALPOINTSNUM 100
 int evaluate(int indvNum)
 {
-	unsigned long long init[4]={0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL}, length=4;
-	init_by_array64(init, length);
 	int x,y;
-	int dif = 0;
+	uint16_t cumdif = 0;
+	uint16_t dif = 0;
 	for(int i=0; i < EVALPOINTSNUM; i++)
 	{
 		x = genrand64_int64()%100;
 		y = genrand64_int64()%100;
-		if(idealfunc(x,y) - runIndv(indvNum,x,y))
-			dif++;
+		// if(idealfunc(x,y) - runIndv(indvNum,x,y))
+			// dif++;
+		dif = idealfunc(x,y) - runIndv(indvNum,x,y);
+		cumdif += dif*dif;
 	}
-	return dif;
+	return cumdif*1.0/EVALPOINTSNUM;
 }
 
 
 // BNF grammar
-int genExpr(char *expr, int* DNA, int DNASize)
+int genExpr(char *expr, uint16_t* DNA, uint16_t DNASize)
 {
-	int * p_DNA = DNA;
+	uint16_t * p_DNA = DNA;
 	char * token = expr;
-	printf("start expr: %s\n", token);
+	// printf("start expr: %s\n", token);
 	while(token = strchr(expr, '<'))
 	{
 		int npos = token-expr;
@@ -88,8 +89,8 @@ int genExpr(char *expr, int* DNA, int DNASize)
 		char right[exprMAXSIZE];
 		strcpy(right, &token[3]);
 		strcpy(left, expr);
-		printf("r: %s\n", right);
-		printf("l: %s\n", left);
+		// printf("r: %s\n", right);
+		// printf("l: %s\n", left);
 		switch (token[1])
 		{
 		case 'e':
@@ -146,7 +147,7 @@ int genExpr(char *expr, int* DNA, int DNASize)
 			return 0;
 		strcat(left, right);
 		strcpy(expr, left);
-		printf("expr: %s\n", expr);
+		// printf("expr: %s\n", expr);
 		if(p_DNA == &DNA[DNASize-1])
 			p_DNA = DNA;
 			else
@@ -155,11 +156,12 @@ int genExpr(char *expr, int* DNA, int DNASize)
 			}
 		  
 	}
+	printf("expr: %s\n", expr);
 	return 1;
 	
 }
 
-int evInd(int* dna, int dnaSize, int indNum)
+int evInd(uint16_t* dna, uint16_t dnaSize, int indNum)
 {
 	char expr[exprMAXSIZE];
 	strcpy(expr, "<e>");
@@ -168,6 +170,8 @@ int evInd(int* dna, int dnaSize, int indNum)
 	else
 	{
 		genCode(expr, indNum);
+		int ev = evaluate(indNum);
+		printf("%d", ev);
 		return evaluate(indNum);
 	}
 }
