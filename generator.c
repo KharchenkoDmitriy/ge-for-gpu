@@ -4,7 +4,7 @@
 #include <dlfcn.h>
 #include "mtgen.c"
 
-#define exprMAXSIZE 2000
+#define exprMAXSIZE 12
 
 void genCode(char *expr, int indvNum)
 {
@@ -79,7 +79,7 @@ int genExpr(char *expr, int* DNA, int DNASize)
 {
 	int * p_DNA = DNA;
 	char * token = expr;
-	// printf("start expr: %s\n", token);
+	printf("start expr: %s\n", token);
 	while(token = strchr(expr, '<'))
 	{
 		int npos = token-expr;
@@ -88,14 +88,16 @@ int genExpr(char *expr, int* DNA, int DNASize)
 		char right[exprMAXSIZE];
 		strcpy(right, &token[3]);
 		strcpy(left, expr);
-		// printf("r: %s\n", right);
-		// printf("l: %s\n", left);
+		printf("r: %s\n", right);
+		printf("l: %s\n", left);
 		switch (token[1])
 		{
 		case 'e':
 			switch (p_DNA[0]%2)
 			{
 			case 0:
+				if(strlen(left)+strlen("(<e><o><e>)") > exprMAXSIZE)
+					return 0;
 				strcat(left, "(<e><o><e>)");
 				break;
 			case 1:
@@ -144,7 +146,7 @@ int genExpr(char *expr, int* DNA, int DNASize)
 			return 0;
 		strcat(left, right);
 		strcpy(expr, left);
-		// printf("expr: %s\n", expr);
+		printf("expr: %s\n", expr);
 		if(p_DNA == &DNA[DNASize-1])
 			p_DNA = DNA;
 			else

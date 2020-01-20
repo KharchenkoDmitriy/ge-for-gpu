@@ -1,2 +1,2 @@
 ge: ge.c
-	gcc ge.c -o ge
+	gcc ge.c -ldl
