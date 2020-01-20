@@ -3,19 +3,16 @@
 #include <time.h>
 #include "generator.c"
 
-const uint64_t MAX_GNA_LENGTH = 5;
-const uint64_t N = 1; 	// Population size
-const uint64_t NGEN = 500; 	// Number of populations
-const float CXPB = 0.9; 	// Cross over probability
-const float MUTPR = 0.1; 	// Mutation probability
+#define MAX_GNA_LENGTH 5
+#define N 1 	// Population size
+#define NGEN 500 	// Number of populations
+#define CXPB 0.9 	// Cross over probability
+#define MUTPR 0.1 	// Mutation probability
 
 int selectedPopulation[N][MAX_GNA_LENGTH];
 int totalPopulation[N*3][MAX_GNA_LENGTH];
 int slectedPopulationEval[N];
 
-void singlePointCrossOver(void){
-
-}
 
 int main(int argc, char** argv)
 {
