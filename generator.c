@@ -53,7 +53,7 @@ int runIndv(int indvNum, int x, int y)
 
 int idealfunc(int x, int y)
 {
-	return x*x+y*y+x*y+x+y+1;
+	return x*x + x*y+1;
 }
 
 #define EVALPOINTSNUM 10
@@ -76,15 +76,17 @@ int evaluate(int indvNum)
 		// if(idealfunc(x,y) - runIndv(indvNum,x,y))
 			// dif++;
 		dif = idealfunc(x[i],y[i]) - runIndv(indvNum,x[i],y[i]);
-		cumdif += dif*dif;
+		cumdif += abs(dif);
 		// if(!dif)
 			// cumdif++;
 	}
-	cumdif /= EVALPOINTSNUM*EVALPOINTSNUM;
+	// cumdif /= EVALPOINTSNUM;
+	if(cumdif < 0) return 1;
+	if(cumdif > UINT16_MAX) return UINT16_MAX;
 	// cumdif = UINT32_MAX - cumdif;
 	// if(cumdif < 0) cumdif = 0;
 	// return cumdif + 1;
-	return cumdif+1;
+	return cumdif;
 }
 
 
@@ -177,18 +179,34 @@ int genExpr(char *expr, int* DNA, int DNASize)
 	
 }
 
+void showInd(int* dna, int dnaSize, int eval)
+{
+	char expr[exprMAXSIZE];
+	strcpy(expr, "<e><o><e>");
+	genExpr(expr, dna, dnaSize);
+	printf("dna: ");
+	for(int i=0; i< dnaSize; i++)
+		printf("%d", dna[i]%6);
+	printf(" ||| ");
+	printf("expr: %s ||| ", expr);
+	printf("eval: %d\n", eval);
+}
 
 int evInd(int* dna, int dnaSize, int indNum)
 {
 	char expr[exprMAXSIZE];
-	strcpy(expr, "<e>");
+	strcpy(expr, "<e><o><e>");
 	if(!genExpr(expr, dna, dnaSize))
 		return UINT16_MAX;
 	else
 	{
 		genCode(expr, indNum);
-		int ev = evaluate(indNum);
-		// printf("expr: %s   ", expr);
+		int ev = evaluate(indNum) + strlen(expr);
+		// printf("dna: ");
+		// for(int i=0; i< dnaSize; i++)
+		// 	printf("%d", dna[i]%6);
+		// printf(" ||| ");
+		// printf("expr: %s ||| ", expr);
 		// printf("eval: %d\n", ev);
 		return ev;
 	}

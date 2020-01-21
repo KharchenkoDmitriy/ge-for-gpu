@@ -4,9 +4,9 @@
 #include <math.h>
 #include "generator.c"
 
-#define MAX_GNA_LENGTH 30
-#define N 100 				// Population size
-#define NGEN 300 			// Number of generations
+#define MAX_GNA_LENGTH 20
+#define N 10				// Population size
+#define NGEN 20 			// Number of generations
 // #define CXPB 0.9 			// Cross over probability
 // #define MUTPR 1.0 			// Mutation probability
 #define GMP 0.3 			// Gen mutation probability
@@ -16,7 +16,7 @@ int totalPopulation[N*3][MAX_GNA_LENGTH];
 int selectedPopulationEval[N];
 int totalPopulationEval[3*N];
 int best[MAX_GNA_LENGTH];
-int bestEval;
+int bestEval = UINT16_MAX;
 
 int findRangeUsingBinarySearch(int* arr, int size, int val) {
 	// printf("%d - size \n", size);
@@ -82,9 +82,6 @@ void singlePointCrossOver() {
 		arrncpy(totalPopulation[i*2+1], selectedPopulation[secondParentIndex], xPoint);
 		arrncpy(&totalPopulation[i*2+1][xPoint], &selectedPopulation[firstParentIndex][xPoint], MAX_GNA_LENGTH - xPoint);		
 		// totalPopulationEval[i*2+1] = evInd(totalPopulation[i*2+1], MAX_GNA_LENGTH, i*2+1);
-	}
-	for(int i = 0; i<N; i++)
-	{
 		arrncpy(totalPopulation[2*N+i], selectedPopulation[i], MAX_GNA_LENGTH);
 		totalPopulationEval[2*N + i] = selectedPopulationEval[i];
 	}
@@ -94,48 +91,86 @@ int cmpfunc (const void * a, const void * b) {
    return ( totalPopulationEval[*(int*)a] - totalPopulationEval[*(int*)b] );
 }
 
+int cmpfuncS (const void * a, const void * b) {
+   return ( selectedPopulationEval[*(int*)a] - selectedPopulationEval[*(int*)b] );
+}
+
+
+
 void selection()
 {
-	// int evaluationSteps[3*N];
-	// long long sum = 0;
-	// for(int i = 0; i < 3*N; i++) {
-	// 	sum += totalPopulationEval[i];
-	// 	evaluationSteps[i] = sum;
-	// }
+	int idxArr[3*N];
+	for(int i=0; i<3*N; i++)
+		idxArr[i] = i;
+	qsort(idxArr, 3*N, sizeof(int), cmpfunc);
+	
+	for(int i = 0; i < N; i++) {
+		arrncpy(selectedPopulation[i], totalPopulation[idxArr[i]], MAX_GNA_LENGTH);
+		selectedPopulationEval[i] = totalPopulationEval[idxArr[i]];
+		showInd(selectedPopulation[i],MAX_GNA_LENGTH, selectedPopulationEval[i]);
+		
+	}
+	if(totalPopulationEval[idxArr[0]] < bestEval)
+		{
+			bestEval = totalPopulationEval[idxArr[0]];
+			arrncpy(best, totalPopulation[idxArr[0]], MAX_GNA_LENGTH);
+		}
+}
+
+void tSelection()
+{
 	int idxArr[3*N];
 	for(int i=0; i<3*N; i++)
 		idxArr[i] = i;
 	qsort(idxArr, 3*N, sizeof(int), cmpfunc);
 
-	// int tournatemtSize = 5;
+	int invert[3*N];
+	int evaluationSteps[3*N];
+	long long sum = 0;
+	for(int i = 0; i < 3*N; i++) {
+		// printf("%d\n", selectedPopulationEval[i]);
+		invert[i] = totalPopulationEval[idxArr[3*N-1]] / totalPopulationEval[idxArr[i]];
+		sum += invert[i];
+		evaluationSteps[i] = sum;
+		// printf("%d\n", evaluationSteps[i]);
+	}
+	int tournatemtSize = 5;
 	for(int i = 0; i < N; i++) {
-		// int bestIdx = findRangeUsingBinarySearch(evaluationSteps, 3*N, ((uint16_t) genrand64_int64()) % (evaluationSteps[3*N-1] - 1) + 1);
-		// int bestIdx = (uint16_t)genrand64_int64() % 3*N;
-		// int index;
-		// for(int j = 1; j < tournatemtSize; j++)
-		// {
-		// 	// index = findRangeUsingBinarySearch(evaluationSteps, 3*N, ((uint16_t) genrand64_int64()) % (evaluationSteps[3*N-1] - 1) + 1);
-		// 	index = (uint16_t)genrand64_int64() % 3*N;
-		// 	if(totalPopulationEval[index]>totalPopulationEval[bestIdx])
-		// 		bestIdx =  index;
-		// }
+		int bestIdx = findRangeUsingBinarySearch(evaluationSteps, 3*N, ((uint16_t) genrand64_int64()) % (evaluationSteps[3*N-1] - 1) + 1);
+		bestIdx = idxArr[bestIdx];
+		int index;
+		for(int j = 1; j < tournatemtSize; j++)
+		{
+			index = findRangeUsingBinarySearch(evaluationSteps, 3*N, ((uint16_t) genrand64_int64()) % (evaluationSteps[3*N-1] - 1) + 1);
+			if(totalPopulationEval[idxArr[index]]>totalPopulationEval[bestIdx])
+				bestIdx =  idxArr[index];
+		}
 
-		arrncpy(selectedPopulation[i], totalPopulation[idxArr[i]], MAX_GNA_LENGTH);
-		selectedPopulationEval[i] = totalPopulationEval[idxArr[i]];
-			// strcpy(expr, "<e>");
-			// genExpr(expr, selectedPopulation[i], MAX_GNA_LENGTH);
-			// printf("Tournament winner expr: %s\n", expr);
+		arrncpy(selectedPopulation[i], totalPopulation[bestIdx], MAX_GNA_LENGTH);
+		selectedPopulationEval[i] = totalPopulationEval[bestIdx];
+		showInd(selectedPopulation[i],MAX_GNA_LENGTH, selectedPopulationEval[i]);
 		
 	}
-	if(totalPopulationEval[idxArr[0]] > bestEval)
+	int tempSel[N][MAX_GNA_LENGTH];
+	int tempEval[N];
+	arrncpy(tempEval, selectedPopulationEval, N);
+	arrncpy(tempSel[0], selectedPopulation[0], N*MAX_GNA_LENGTH);
+
+	int sidxArr[N];
+	for(int i=0; i<N; i++)
+		idxArr[i] = i;
+	qsort(idxArr, N, sizeof(int), cmpfuncS);
+	for(int i=0; i<N; i++)
+	{
+		arrncpy(selectedPopulation[i], tempSel[idxArr[i]], MAX_GNA_LENGTH);
+		selectedPopulationEval[i] = tempEval[idxArr[i]];
+	}
+
+
+	if(selectedPopulationEval[0] < bestEval)
 		{
-			bestEval = totalPopulationEval[idxArr[0]];
-			char expr[exprMAXSIZE];
-			arrncpy(best, totalPopulation[idxArr[0]], MAX_GNA_LENGTH);
-			strcpy(expr, "<e>");
-			genExpr(expr, best, MAX_GNA_LENGTH);
-			printf("BEST expr: %s\n", expr);
-			
+			bestEval = selectedPopulationEval[0];
+			arrncpy(best, selectedPopulation[0], MAX_GNA_LENGTH);
 		}
 }
 
@@ -190,12 +225,11 @@ int main(int argc, char** argv)
 	mutation();
 	// evaluate and do selection
 	printf("Selection time\n");
+	// tSelection();
 	selection();
 	}
-	
-	char expr[exprMAXSIZE];
-	strcpy(expr, "<e>");
-	genExpr(expr, best, MAX_GNA_LENGTH);
-	printf("BEST expr: %s\n", expr);
+	printf("Best: ");
+	showInd(best, MAX_GNA_LENGTH, bestEval);
+
 	return 0;
 }
