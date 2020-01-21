@@ -5,7 +5,7 @@
 #include "generator.c"
 
 #define MAX_GNA_LENGTH 20
-#define N 10				// Population size
+#define N 30				// Population size
 #define NGEN 20 			// Number of generations
 // #define CXPB 0.9 			// Cross over probability
 // #define MUTPR 1.0 			// Mutation probability
@@ -203,7 +203,8 @@ int main(int argc, char** argv)
 			// printf("%d \n", selectedPopulation[i][j]);
 		}
 		// selectedPopulationEval[i] = i*2;
-		totalPopulationEval[i] = evInd(selectedPopulation[i], MAX_GNA_LENGTH, i);
+		totalPopulationEval[i] = evInd(totalPopulation[i], MAX_GNA_LENGTH, i);
+		showInd(totalPopulation[i],MAX_GNA_LENGTH, totalPopulationEval[i]);
 	}
 	int idxArr[N];
 	for(int i=0; i<N; i++)
