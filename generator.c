@@ -53,32 +53,45 @@ int runIndv(int indvNum, int x, int y)
 
 int idealfunc(int x, int y)
 {
-	return x*y+1;
+	return x*x+y*y+x*y+x+y+1;
 }
 
-#define EVALPOINTSNUM 100
-int evaluate(int indvNum)
+#define EVALPOINTSNUM 10
+int x[EVALPOINTSNUM];
+int y[EVALPOINTSNUM];
+void initTestData()
 {
-	int x,y;
-	uint16_t cumdif = 0;
-	uint16_t dif = 0;
 	for(int i=0; i < EVALPOINTSNUM; i++)
 	{
-		x = genrand64_int64()%100;
-		y = genrand64_int64()%100;
+		x[i] = (int)genrand64_int64()%20;
+		y[i] = (int)genrand64_int64()%20;
+	}
+}
+int evaluate(int indvNum)
+{
+	long long cumdif = 0;
+	long dif = 0;
+	for(int i=0; i < EVALPOINTSNUM; i++)
+	{
 		// if(idealfunc(x,y) - runIndv(indvNum,x,y))
 			// dif++;
-		dif = idealfunc(x,y) - runIndv(indvNum,x,y);
+		dif = idealfunc(x[i],y[i]) - runIndv(indvNum,x[i],y[i]);
 		cumdif += dif*dif;
+		// if(!dif)
+			// cumdif++;
 	}
-	return cumdif*1.0/EVALPOINTSNUM;
+	cumdif /= EVALPOINTSNUM*EVALPOINTSNUM;
+	// cumdif = UINT32_MAX - cumdif;
+	// if(cumdif < 0) cumdif = 0;
+	// return cumdif + 1;
+	return cumdif+1;
 }
 
 
 // BNF grammar
-int genExpr(char *expr, uint16_t* DNA, uint16_t DNASize)
+int genExpr(char *expr, int* DNA, int DNASize)
 {
-	uint16_t * p_DNA = DNA;
+	int * p_DNA = DNA;
 	char * token = expr;
 	// printf("start expr: %s\n", token);
 	while(token = strchr(expr, '<'))
@@ -105,6 +118,7 @@ int genExpr(char *expr, uint16_t* DNA, uint16_t DNASize)
 				strcat(left, "<v>");
 				break;
 			default:
+				printf("invalid dna: %d\n", p_DNA[0]%2);
 				break;
 			}
 			break;
@@ -121,6 +135,7 @@ int genExpr(char *expr, uint16_t* DNA, uint16_t DNASize)
 				strcat(left, "1");
 				break;
 			default:
+				printf("invalid dna: %d\n", p_DNA[0]%3);
 				break;
 			}            
 			break;
@@ -137,6 +152,7 @@ int genExpr(char *expr, uint16_t* DNA, uint16_t DNASize)
 				strcat(left, "*");
 				break;
 			default:
+				printf("invalid dna: %d\n", p_DNA[0]%3);
 				break;
 			}   
 			break;
@@ -156,23 +172,25 @@ int genExpr(char *expr, uint16_t* DNA, uint16_t DNASize)
 			}
 		  
 	}
-	printf("expr: %s\n", expr);
+	// printf("expr: %s\n", expr);
 	return 1;
 	
 }
 
-int evInd(uint16_t* dna, uint16_t dnaSize, int indNum)
+
+int evInd(int* dna, int dnaSize, int indNum)
 {
 	char expr[exprMAXSIZE];
 	strcpy(expr, "<e>");
 	if(!genExpr(expr, dna, dnaSize))
-		return EVALPOINTSNUM;
+		return UINT16_MAX;
 	else
 	{
 		genCode(expr, indNum);
 		int ev = evaluate(indNum);
-		printf("%d", ev);
-		return evaluate(indNum);
+		// printf("expr: %s   ", expr);
+		// printf("eval: %d\n", ev);
+		return ev;
 	}
 }
 
