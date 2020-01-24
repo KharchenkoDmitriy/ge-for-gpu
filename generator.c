@@ -78,19 +78,17 @@ int runInd(int indvNum, int x, int y)
 	return res;
 }
 
-int runInd_F(int indvNum, int x, int y)
+int runInd_F(int indvNum, int x, int y, void* handle)
 {
-	void *handle;
 	int (*func_print_name)(int,int);
 
-	char indvPath[30];
-	sprintf(indvPath, "temp/individual_all.so");
-	handle = dlopen(indvPath, RTLD_LAZY);
+	
 	if (!handle) {
 		/* fail to load the library */
 		fprintf(stderr, "Error: %s\n", dlerror());
 		return EXIT_FAILURE;
 	}
+
 	char funcName[10];
 	sprintf(funcName, "exec%d", indvNum);
 	*(int**)(&func_print_name) = dlsym(handle, funcName);
@@ -102,7 +100,7 @@ int runInd_F(int indvNum, int x, int y)
 	}
 
 	int res =  func_print_name(x,y);
-	dlclose(handle);
+	// dlclose(handle);
 	return res;
 }
 
@@ -111,7 +109,7 @@ int idealfunc(int x, int y)
 	return x*x + x*y+1;
 }
 
-#define EVALPOINTSNUM 10
+#define EVALPOINTSNUM 10000
 int x[EVALPOINTSNUM];
 int y[EVALPOINTSNUM];
 void initTestData()
@@ -144,7 +142,7 @@ int evaluate(int indvNum)
 	return cumdif;
 }
 
-int evaluate_F(int indvNum)
+int evaluate_F(int indvNum, void* handle)
 {
 	long long cumdif = 0;
 	long dif = 0;
@@ -152,7 +150,7 @@ int evaluate_F(int indvNum)
 	{
 		// if(idealfunc(x,y) - runIndv(indvNum,x,y))
 			// dif++;
-		dif = idealfunc(x[i],y[i]) - runInd_F(indvNum,x[i],y[i]);
+		dif = idealfunc(x[i],y[i]) - runInd_F(indvNum,x[i],y[i], handle);
 		cumdif += abs(dif);
 		// if(!dif)
 			// cumdif++;

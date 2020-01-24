@@ -5,7 +5,7 @@
 #include "generator.c"
 
 #define MAX_GNA_LENGTH 30
-#define N 1000				// Population size
+#define N 500			// Population size
 #define NGEN 100 			// Number of generations
 // #define CXPB 0.9 			// Cross over probability
 // #define MUTPR 1.0 			// Mutation probability
@@ -176,6 +176,9 @@ void tSelection()
 
 void evalPop()
 {
+	printf("Mapping time.....");
+	fflush(stdout);
+	time_t begin = time(NULL);
 	char prog[exprMAXSIZE+38];
 	char allprog[(exprMAXSIZE+38) * 2 * N];
 	strcpy(allprog, "");
@@ -190,7 +193,12 @@ void evalPop()
 		strcat(allprog,prog);
 		totalPopulationEval[i] = strlen(expr);
 	}
+	time_t end = time(NULL);
+	printf("Done, time spent = %ld\n", end-begin);
 
+	printf("Disk I\\O.....");
+	fflush(stdout);
+	begin = time(NULL);
 	FILE *fp;
 	char filePath[30];
 	sprintf(filePath, "temp/generated_all.c");
@@ -203,10 +211,29 @@ void evalPop()
 	sprintf(gccCall, "gcc -fPIC -O -shared temp/generated_all.c -o temp/individual_all.so");
 	system(gccCall);
 
+	void *handle;
+	char indvPath[30];
+	sprintf(indvPath, "temp/individual_all.so");
+	handle = dlopen(indvPath, RTLD_LAZY);
+	if (!handle) {
+		/* fail to load the library */
+		fprintf(stderr, "Error: %s\n", dlerror());
+	}
+
+	end = time(NULL);
+	printf("Done, time spent = %ld\n", end-begin);
+
+	printf("Eval time.....");
+	fflush(stdout);
+	begin = time(NULL);
 	for(int i=0; i<2*N; i++)
 	{
-		totalPopulationEval[i]+=evaluate_F(i);
+		totalPopulationEval[i]+=evaluate_F(i, handle);
 	}
+	dlclose(handle);
+	end = time(NULL);
+	printf("Done, time spent = %ld\n", end-begin);
+
 }
 
 
@@ -224,7 +251,7 @@ void mutation()
 				// totalPopulationEval[i] = evInd(totalPopulation[i], MAX_GNA_LENGTH, i);
 			}
 	}
-	evalPop();
+	
 }
 
 
@@ -242,7 +269,7 @@ int main(int argc, char** argv)
 		}
 		// selectedPopulationEval[i] = i*2;
 		// totalPopulationEval[i] = evInd(totalPopulation[i], MAX_GNA_LENGTH, i);
-		showInd(totalPopulation[i],MAX_GNA_LENGTH, totalPopulationEval[i]);
+		// showInd(totalPopulation[i],MAX_GNA_LENGTH, totalPopulationEval[i]);
 	}
 	evalPop();
 	int idxArr[N];
@@ -260,15 +287,28 @@ int main(int argc, char** argv)
 	printf("------------------\n");
 	printf("Iteration %d\n", i);
 	// crossover them
-	printf("Crossover time\n");
+	printf("Crossover time......");
+	fflush(stdout);
+	time_t begin = time(NULL);
 	singlePointCrossOver();
+	time_t end = time(NULL);
+	printf("Done, spent time = %ld\n", end-begin);
 	// mutate
-	printf("Mutation time\n");
+	printf("Mutation time......");
+	fflush(stdout);
+	begin = time(NULL);
 	mutation();
+	end = time(NULL);
+	printf("Done, spent time = %ld\n", end-begin);
+	evalPop();
 	// evaluate and do selection
-	printf("Selection time\n");
+	printf("Selection time......");
+	fflush(stdout);
+	begin = time(NULL);
 	// tSelection();
 	selection();
+	end = time(NULL);
+	printf("Done, spent time = %ld\n", end-begin);
 	printf("------------------\n");
 	}
 	printf("Best: ");
