@@ -24,33 +24,6 @@ void genCode(char *expr, int indvNum)
 	system(gccCall);
 }
 
-int runIndv(int indvNum, int x, int y)
-{
-	void *handle;
-	int (*func_print_name)(int,int);
-
-	char indvPath[30];
-	sprintf(indvPath, "temp/individual%d.so", indvNum);
-	handle = dlopen(indvPath, RTLD_LAZY);
-	if (!handle) {
-		/* fail to load the library */
-		fprintf(stderr, "Error: %s\n", dlerror());
-		return EXIT_FAILURE;
-	}
-
-	*(int**)(&func_print_name) = dlsym(handle, "exec");
-	if (!func_print_name) {
-		/* no such symbol */
-		fprintf(stderr, "Error: %s\n", dlerror());
-		dlclose(handle);
-		return EXIT_FAILURE;
-	}
-
-	int res =  func_print_name(x,y);
-	dlclose(handle);
-	return res;
-}
-
 int runInd(int indvNum, int x, int y)
 {
 	void *handle;
@@ -77,6 +50,8 @@ int runInd(int indvNum, int x, int y)
 	dlclose(handle);
 	return res;
 }
+
+
 
 int runInd_F(int indvNum, int x, int y, void* handle)
 {
@@ -109,7 +84,7 @@ int idealfunc(int x, int y)
 	return x*x + x*y+1;
 }
 
-#define EVALPOINTSNUM 10000
+#define EVALPOINTSNUM 1000
 int x[EVALPOINTSNUM];
 int y[EVALPOINTSNUM];
 void initTestData()
@@ -126,9 +101,9 @@ int evaluate(int indvNum)
 	long dif = 0;
 	for(int i=0; i < EVALPOINTSNUM; i++)
 	{
-		// if(idealfunc(x,y) - runIndv(indvNum,x,y))
+		// if(idealfunc(x,y) - runInd(indvNum,x,y))
 			// dif++;
-		dif = idealfunc(x[i],y[i]) - runIndv(indvNum,x[i],y[i]);
+		dif = idealfunc(x[i],y[i]) - runInd(indvNum,x[i],y[i]);
 		cumdif += abs(dif);
 		// if(!dif)
 			// cumdif++;
@@ -148,7 +123,7 @@ int evaluate_F(int indvNum, void* handle)
 	long dif = 0;
 	for(int i=0; i < EVALPOINTSNUM; i++)
 	{
-		// if(idealfunc(x,y) - runIndv(indvNum,x,y))
+		// if(idealfunc(x,y) - runInd(indvNum,x,y))
 			// dif++;
 		dif = idealfunc(x[i],y[i]) - runInd_F(indvNum,x[i],y[i], handle);
 		cumdif += abs(dif);
@@ -253,6 +228,10 @@ int genExpr(char *expr, int* DNA, int DNASize)
 	return 1;
 	
 }
+
+
+
+
 
 void showInd(int* dna, int dnaSize, int eval)
 {
