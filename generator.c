@@ -8,18 +8,18 @@
 
 void genCode(char *expr, int indvNum)
 {
-	char *prog = malloc((38+exprMAXSIZE) * sizeof(char));
+	char prog[38+exprMAXSIZE];
 	sprintf(prog, "int exec(int x, int y)\n{\nreturn %s;\n}", expr);
 
 	FILE *fp;
-	char* filePath = malloc(30 * sizeof(char));
+	char filePath[30];
 	sprintf(filePath, "temp/generated%d.c", indvNum);
 	
 	fp = fopen(filePath, "w+");
 	fputs(prog, fp);
 	fclose(fp);
 
-	char* gccCall = malloc(100 * sizeof(char));
+	char gccCall[100];
 	sprintf(gccCall, "gcc -fPIC -O -shared temp/generated%d.c -o temp/individual%d.so", indvNum,indvNum);
 	system(gccCall);
 }
@@ -29,7 +29,7 @@ int runIndv(int indvNum, int x, int y)
 	void *handle;
 	int (*func_print_name)(int,int);
 
-	char* indvPath = malloc(30 * sizeof(char));
+	char indvPath[30];
 	sprintf(indvPath, "temp/individual%d.so", indvNum);
 	handle = dlopen(indvPath, RTLD_LAZY);
 	if (!handle) {
@@ -56,7 +56,7 @@ int runInd(int indvNum, int x, int y)
 	void *handle;
 	int (*func_print_name)(int,int);
 
-	char* indvPath = malloc(30 * sizeof(char));
+	char indvPath[30];
 	sprintf(indvPath, "temp/individual%d.so", indvNum);
 	handle = dlopen(indvPath, RTLD_LAZY);
 	if (!handle) {
@@ -83,7 +83,7 @@ int runInd_F(int indvNum, int x, int y)
 	void *handle;
 	int (*func_print_name)(int,int);
 
-	char* indvPath = malloc(30 * sizeof(char));
+	char indvPath[30];
 	sprintf(indvPath, "temp/individual_all.so");
 	handle = dlopen(indvPath, RTLD_LAZY);
 	if (!handle) {

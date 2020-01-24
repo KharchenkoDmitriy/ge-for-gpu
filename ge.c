@@ -192,14 +192,14 @@ void evalPop()
 	}
 
 	FILE *fp;
-	char* filePath = malloc(30 * sizeof(char));
+	char filePath[30];
 	sprintf(filePath, "temp/generated_all.c");
 	
 	fp = fopen(filePath, "w+");
 	fputs(allprog, fp);
 	fclose(fp);
 
-	char* gccCall = malloc(100 * sizeof(char));
+	char gccCall[100];
 	sprintf(gccCall, "gcc -fPIC -O -shared temp/generated_all.c -o temp/individual_all.so");
 	system(gccCall);
 
