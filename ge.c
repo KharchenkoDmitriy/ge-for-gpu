@@ -4,9 +4,9 @@
 #include <math.h>
 #include "generator.c"
 
-#define MAX_GNA_LENGTH 20
-#define N 30				// Population size
-#define NGEN 20 			// Number of generations
+#define MAX_GNA_LENGTH 30
+#define N 1000				// Population size
+#define NGEN 100 			// Number of generations
 // #define CXPB 0.9 			// Cross over probability
 // #define MUTPR 1.0 			// Mutation probability
 #define GMP 0.3 			// Gen mutation probability
@@ -107,7 +107,7 @@ void selection()
 	for(int i = 0; i < N; i++) {
 		arrncpy(selectedPopulation[i], totalPopulation[idxArr[i]], MAX_GNA_LENGTH);
 		selectedPopulationEval[i] = totalPopulationEval[idxArr[i]];
-		showInd(selectedPopulation[i],MAX_GNA_LENGTH, selectedPopulationEval[i]);
+		// showInd(selectedPopulation[i],MAX_GNA_LENGTH, selectedPopulationEval[i]);
 		
 	}
 	if(totalPopulationEval[idxArr[0]] < bestEval)
@@ -174,6 +174,42 @@ void tSelection()
 		}
 }
 
+void evalPop()
+{
+	char prog[exprMAXSIZE+38];
+	char allprog[(exprMAXSIZE+38) * 2 * N];
+	strcpy(allprog, "");
+	for(int i=0; i<2*N; i++)
+	{
+		char expr[exprMAXSIZE];
+		strcpy(expr, "<e><o><e>");
+		if(genExpr(expr, totalPopulation[i], MAX_GNA_LENGTH))
+			sprintf(prog, "int exec%d(int x, int y)\n{\nreturn %s;\n}\n", i, expr);
+		else 
+			sprintf(prog, "int exec%d(int x, int y)\n{\nreturn %s;\n}\n", i, "65535");
+		strcat(allprog,prog);
+		totalPopulationEval[i] = strlen(expr);
+	}
+
+	FILE *fp;
+	char* filePath = malloc(30 * sizeof(char));
+	sprintf(filePath, "temp/generated_all.c");
+	
+	fp = fopen(filePath, "w+");
+	fputs(allprog, fp);
+	fclose(fp);
+
+	char* gccCall = malloc(100 * sizeof(char));
+	sprintf(gccCall, "gcc -fPIC -O -shared temp/generated_all.c -o temp/individual_all.so");
+	system(gccCall);
+
+	for(int i=0; i<2*N; i++)
+	{
+		totalPopulationEval[i]+=evaluate_F(i);
+	}
+}
+
+
 void mutation()
 {
 	for(int i=0; i<2*N; i++)
@@ -185,10 +221,12 @@ void mutation()
 					if((uint16_t) genrand64_int64() * 1.0 < (UINT16_MAX * GMP))
 						totalPopulation[i][j] = (uint16_t) genrand64_int64();
 				}
-				totalPopulationEval[i] = evInd(totalPopulation[i], MAX_GNA_LENGTH, i);
+				// totalPopulationEval[i] = evInd(totalPopulation[i], MAX_GNA_LENGTH, i);
 			}
 	}
+	evalPop();
 }
+
 
 int main(int argc, char** argv)
 {
@@ -203,9 +241,10 @@ int main(int argc, char** argv)
 			// printf("%d \n", selectedPopulation[i][j]);
 		}
 		// selectedPopulationEval[i] = i*2;
-		totalPopulationEval[i] = evInd(totalPopulation[i], MAX_GNA_LENGTH, i);
+		// totalPopulationEval[i] = evInd(totalPopulation[i], MAX_GNA_LENGTH, i);
 		showInd(totalPopulation[i],MAX_GNA_LENGTH, totalPopulationEval[i]);
 	}
+	evalPop();
 	int idxArr[N];
 	for(int i=0; i<N; i++)
 		idxArr[i] = i;
@@ -218,6 +257,8 @@ int main(int argc, char** argv)
 
 	for(int i=0; i<NGEN; i++)
 	{
+	printf("------------------\n");
+	printf("Iteration %d\n", i);
 	// crossover them
 	printf("Crossover time\n");
 	singlePointCrossOver();
@@ -228,6 +269,7 @@ int main(int argc, char** argv)
 	printf("Selection time\n");
 	// tSelection();
 	selection();
+	printf("------------------\n");
 	}
 	printf("Best: ");
 	showInd(best, MAX_GNA_LENGTH, bestEval);

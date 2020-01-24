@@ -8,7 +8,7 @@
 
 void genCode(char *expr, int indvNum)
 {
-	char *prog = malloc(200 * sizeof(char));
+	char *prog = malloc((38+exprMAXSIZE) * sizeof(char));
 	sprintf(prog, "int exec(int x, int y)\n{\nreturn %s;\n}", expr);
 
 	FILE *fp;
@@ -51,6 +51,61 @@ int runIndv(int indvNum, int x, int y)
 	return res;
 }
 
+int runInd(int indvNum, int x, int y)
+{
+	void *handle;
+	int (*func_print_name)(int,int);
+
+	char* indvPath = malloc(30 * sizeof(char));
+	sprintf(indvPath, "temp/individual%d.so", indvNum);
+	handle = dlopen(indvPath, RTLD_LAZY);
+	if (!handle) {
+		/* fail to load the library */
+		fprintf(stderr, "Error: %s\n", dlerror());
+		return EXIT_FAILURE;
+	}
+
+	*(int**)(&func_print_name) = dlsym(handle, "exec");
+	if (!func_print_name) {
+		/* no such symbol */
+		fprintf(stderr, "Error: %s\n", dlerror());
+		dlclose(handle);
+		return EXIT_FAILURE;
+	}
+
+	int res =  func_print_name(x,y);
+	dlclose(handle);
+	return res;
+}
+
+int runInd_F(int indvNum, int x, int y)
+{
+	void *handle;
+	int (*func_print_name)(int,int);
+
+	char* indvPath = malloc(30 * sizeof(char));
+	sprintf(indvPath, "temp/individual_all.so");
+	handle = dlopen(indvPath, RTLD_LAZY);
+	if (!handle) {
+		/* fail to load the library */
+		fprintf(stderr, "Error: %s\n", dlerror());
+		return EXIT_FAILURE;
+	}
+	char funcName[10];
+	sprintf(funcName, "exec%d", indvNum);
+	*(int**)(&func_print_name) = dlsym(handle, funcName);
+	if (!func_print_name) {
+		/* no such symbol */
+		fprintf(stderr, "Error: %s\n", dlerror());
+		dlclose(handle);
+		return EXIT_FAILURE;
+	}
+
+	int res =  func_print_name(x,y);
+	dlclose(handle);
+	return res;
+}
+
 int idealfunc(int x, int y)
 {
 	return x*x + x*y+1;
@@ -76,6 +131,28 @@ int evaluate(int indvNum)
 		// if(idealfunc(x,y) - runIndv(indvNum,x,y))
 			// dif++;
 		dif = idealfunc(x[i],y[i]) - runIndv(indvNum,x[i],y[i]);
+		cumdif += abs(dif);
+		// if(!dif)
+			// cumdif++;
+	}
+	// cumdif /= EVALPOINTSNUM;
+	if(cumdif < 0) return 1;
+	if(cumdif > UINT16_MAX) return UINT16_MAX;
+	// cumdif = UINT32_MAX - cumdif;
+	// if(cumdif < 0) cumdif = 0;
+	// return cumdif + 1;
+	return cumdif;
+}
+
+int evaluate_F(int indvNum)
+{
+	long long cumdif = 0;
+	long dif = 0;
+	for(int i=0; i < EVALPOINTSNUM; i++)
+	{
+		// if(idealfunc(x,y) - runIndv(indvNum,x,y))
+			// dif++;
+		dif = idealfunc(x[i],y[i]) - runInd_F(indvNum,x[i],y[i]);
 		cumdif += abs(dif);
 		// if(!dif)
 			// cumdif++;
