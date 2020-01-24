@@ -4,8 +4,8 @@
 #include <math.h>
 #include "generator.c"
 
-#define MAX_GNA_LENGTH 30
-#define N 500			// Population size
+#define MAX_GNA_LENGTH 40
+#define N 2000			// Population size
 #define NGEN 100 			// Number of generations
 // #define CXPB 0.9 			// Cross over probability
 // #define MUTPR 1.0 			// Mutation probability
@@ -174,11 +174,19 @@ void tSelection()
 		}
 }
 
+int64_t timespecDiff(struct timespec *timeA_p, struct timespec *timeB_p)
+{
+  return (((timeA_p->tv_sec * 1000000000) + timeA_p->tv_nsec) -
+           ((timeB_p->tv_sec * 1000000000) + timeB_p->tv_nsec))/1000000;
+}
+
 void evalPop()
 {
+	struct timespec start, end;
 	printf("Mapping time.....");
 	fflush(stdout);
-	time_t begin = time(NULL);
+	// time_t begin = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	char prog[exprMAXSIZE+38];
 	char allprog[(exprMAXSIZE+38) * 2 * N];
 	strcpy(allprog, "");
@@ -193,12 +201,14 @@ void evalPop()
 		strcat(allprog,prog);
 		totalPopulationEval[i] = strlen(expr);
 	}
-	time_t end = time(NULL);
-	printf("Done, time spent = %ld\n", end-begin);
+	// time_t end = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &end);
+	printf("Done, time spent = %ld\n", timespecDiff(&end,&start));
 
 	printf("Disk I\\O.....");
 	fflush(stdout);
-	begin = time(NULL);
+	// begin = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	FILE *fp;
 	char filePath[30];
 	sprintf(filePath, "temp/generated_all.c");
@@ -220,19 +230,22 @@ void evalPop()
 		fprintf(stderr, "Error: %s\n", dlerror());
 	}
 
-	end = time(NULL);
-	printf("Done, time spent = %ld\n", end-begin);
+	// end = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &end);
+	printf("Done, time spent = %ld\n", timespecDiff(&end,&start));
 
 	printf("Eval time.....");
 	fflush(stdout);
-	begin = time(NULL);
+	// begin = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	for(int i=0; i<2*N; i++)
 	{
 		totalPopulationEval[i]+=evaluate_F(i, handle);
 	}
 	dlclose(handle);
-	end = time(NULL);
-	printf("Done, time spent = %ld\n", end-begin);
+	// end = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &end);
+	printf("Done, time spent = %ld\n", timespecDiff(&end,&start));
 
 }
 
@@ -255,9 +268,11 @@ void mutation()
 }
 
 
+
+
 int main(int argc, char** argv)
 {
-	// init_genrand64(time(NULL));
+	// init_genrand64(clock_gettime());
 	initTestData();
 	rMGL = sqrt(sqrt(MAX_GNA_LENGTH * 1.0));
 	// create random instances
@@ -284,31 +299,38 @@ int main(int argc, char** argv)
 
 	for(int i=0; i<NGEN; i++)
 	{
+	struct timespec start, end;
 	printf("------------------\n");
 	printf("Iteration %d\n", i);
 	// crossover them
 	printf("Crossover time......");
 	fflush(stdout);
-	time_t begin = time(NULL);
+	// time_t begin = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	singlePointCrossOver();
-	time_t end = time(NULL);
-	printf("Done, spent time = %ld\n", end-begin);
+	// time_t end = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &end);
+	printf("Done, spent time = %ld\n", timespecDiff(&end, &start));
 	// mutate
 	printf("Mutation time......");
 	fflush(stdout);
-	begin = time(NULL);
+	// begin = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	mutation();
-	end = time(NULL);
-	printf("Done, spent time = %ld\n", end-begin);
+	// end = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &end);
+	printf("Done, spent time = %ld\n", timespecDiff(&end, &start));
 	evalPop();
 	// evaluate and do selection
 	printf("Selection time......");
 	fflush(stdout);
-	begin = time(NULL);
+	// begin = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	// tSelection();
 	selection();
-	end = time(NULL);
-	printf("Done, spent time = %ld\n", end-begin);
+	// end = clock_gettime();
+	clock_gettime(CLOCK_MONOTONIC, &end);
+	printf("Done, spent time = %ld\n", timespecDiff(&end, &start));
 	printf("------------------\n");
 	}
 	printf("Best: ");
