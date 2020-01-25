@@ -5,10 +5,11 @@
 #include "mtgen.c"
 
 #define exprMAXSIZE 200
-#define EVALPOINTSNUM 1000
+#define EVALPOINTSNUM 4000
 
 int x[EVALPOINTSNUM];
 int y[EVALPOINTSNUM];
+int resF[EVALPOINTSNUM];
 
 void genCode(char *expr, int indvNum)
 {
@@ -95,6 +96,7 @@ void initTestData()
 	{
 		x[i] = (int)genrand64_int64()%20;
 		y[i] = (int)genrand64_int64()%20;
+		resF[i] = idealfunc(x[i],y[i]);
 	}
 }
 int evaluate(int indvNum)
@@ -105,7 +107,7 @@ int evaluate(int indvNum)
 	{
 		// if(idealfunc(x,y) - runInd(indvNum,x,y))
 			// dif++;
-		dif = idealfunc(x[i],y[i]) - runInd(indvNum,x[i],y[i]);
+		dif = resF[i] - runInd(indvNum,x[i],y[i]);
 		cumdif += abs(dif);
 		// if(!dif)
 			// cumdif++;
