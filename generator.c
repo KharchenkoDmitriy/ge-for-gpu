@@ -5,6 +5,10 @@
 #include "mtgen.c"
 
 #define exprMAXSIZE 200
+#define EVALPOINTSNUM 1000
+
+int x[EVALPOINTSNUM];
+int y[EVALPOINTSNUM];
 
 void genCode(char *expr, int indvNum)
 {
@@ -84,9 +88,7 @@ int idealfunc(int x, int y)
 	return x*x + x*y + y*y + 3;
 }
 
-#define EVALPOINTSNUM 100
-int x[EVALPOINTSNUM];
-int y[EVALPOINTSNUM];
+
 void initTestData()
 {
 	for(int i=0; i < EVALPOINTSNUM; i++)
@@ -109,7 +111,7 @@ int evaluate(int indvNum)
 			// cumdif++;
 	}
 	// cumdif /= EVALPOINTSNUM;
-	if(cumdif < 0) return 1;
+	if(cumdif < 0) return UINT16_MAX;
 	if(cumdif > UINT16_MAX) return UINT16_MAX;
 	// cumdif = UINT32_MAX - cumdif;
 	// if(cumdif < 0) cumdif = 0;
@@ -117,22 +119,24 @@ int evaluate(int indvNum)
 	return cumdif;
 }
 
-int evaluate_F(int indvNum, void* handle)
+uint32_t evaluate_F(int indvNum, void* handle)
 {
-	long long cumdif = 0;
+	uint32_t cumdif = 0;
 	long dif = 0;
 	for(int i=0; i < EVALPOINTSNUM; i++)
 	{
 		// if(idealfunc(x,y) - runInd(indvNum,x,y))
 			// dif++;
 		dif = idealfunc(x[i],y[i]) - runInd_F(indvNum,x[i],y[i], handle);
+		// if(abs(dif) > UINT16_MAX) dif = UINT16_MAX;
 		cumdif += abs(dif);
-		// if(!dif)
+		if(cumdif < 0 || cumdif > UINT32_MAX/2) return UINT32_MAX/2;
+		// if(dif)
 			// cumdif++;
 	}
 	// cumdif /= EVALPOINTSNUM;
-	if(cumdif < 0) return 1;
-	if(cumdif > UINT16_MAX) return UINT16_MAX;
+	// if(cumdif < 0) return UINT16_MAX*EVALPOINTSNUM;
+	// if(cumdif > UINT16_MAX*EVALPOINTSNUM) return UINT16_MAX*EVALPOINTSNUM;
 	// cumdif = UINT32_MAX - cumdif;
 	// if(cumdif < 0) cumdif = 0;
 	// return cumdif + 1;
@@ -162,9 +166,9 @@ int genExpr(char *expr, int* DNA, int DNASize)
 			switch (p_DNA[0]%2)
 			{
 			case 0:
-				if(strlen(left)+strlen("(<e><o><e>)") > exprMAXSIZE)
+				if(strlen(left)+strlen("<e><o><e>") > exprMAXSIZE)
 					return 0;
-				strcat(left, "(<e><o><e>)");
+				strcat(left, "<e><o><e>");
 				break;
 			case 1:
 				strcat(left, "<v>");

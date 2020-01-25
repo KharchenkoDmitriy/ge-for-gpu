@@ -5,8 +5,8 @@
 #include "generator.c"
 #include "hash.c"
 
-#define MAX_GNA_LENGTH 20
-#define N 10000			// Population size
+#define MAX_GNA_LENGTH 30
+#define N 800			// Population size
 #define NGEN 20 			// Number of generations
 // #define CXPB 0.9 			// Cross over probability
 // #define MUTPR 1.0 			// Mutation probability
@@ -14,10 +14,10 @@
 int rMGL;
 int selectedPopulation[N][MAX_GNA_LENGTH];
 int totalPopulation[N*3][MAX_GNA_LENGTH];
-int selectedPopulationEval[N];
-int totalPopulationEval[3*N];
+uint32_t selectedPopulationEval[N];
+uint32_t totalPopulationEval[3*N];
 int best[MAX_GNA_LENGTH];
-int bestEval = UINT16_MAX;
+uint32_t bestEval = UINT32_MAX;
 
 long long mutTimeStat;
 long long crossTimeStat;
@@ -31,7 +31,7 @@ int hashhit;
 char totalPopulationExpr[2*N][exprMAXSIZE];
 struct table * htable;
 
-int findRangeUsingBinarySearch(int* arr, int size, int val) {
+int findRangeUsingBinarySearch(uint64_t* arr, int size, int val) {
 	// printf("%d - size \n", size);
 	// printf("%f - log2(size) \n", log2(size));
 	// printf("Random value is %d\n", val);
@@ -49,7 +49,7 @@ int findRangeUsingBinarySearch(int* arr, int size, int val) {
 	return to;
 }
 
-void arrncpy(int *destArr, int *sourceArr, int num)
+void arrncpy(uint32_t *destArr, uint32_t *sourceArr, int num)
 {
 	for(int i=0; i<num; i++)
 	{	
@@ -58,9 +58,9 @@ void arrncpy(int *destArr, int *sourceArr, int num)
 }
 
 void singlePointCrossOver() {
-	int invert[N];
-	int evaluationSteps[N];
-	long long sum = 0;
+	uint32_t invert[N];
+	uint64_t evaluationSteps[N];
+	uint64_t sum = 0;
 	for(int i = 0; i < N; i++) {
 		// printf("%d\n", selectedPopulationEval[i]);
 		invert[i] = selectedPopulationEval[N-1] / selectedPopulationEval[i];
@@ -115,7 +115,7 @@ void selection()
 	int idxArr[3*N];
 	for(int i=0; i<3*N; i++)
 		idxArr[i] = i;
-	qsort(idxArr, 3*N, sizeof(int), cmpfunc);
+	qsort(idxArr, 3*N, sizeof(uint32_t), cmpfunc);
 	
 	for(int i = 0; i < N; i++) {
 		arrncpy(selectedPopulation[i], totalPopulation[idxArr[i]], MAX_GNA_LENGTH);
@@ -135,11 +135,11 @@ void tSelection()
 	int idxArr[3*N];
 	for(int i=0; i<3*N; i++)
 		idxArr[i] = i;
-	qsort(idxArr, 3*N, sizeof(int), cmpfunc);
+	qsort(idxArr, 3*N, sizeof(uint32_t), cmpfunc);
 
 	int invert[3*N];
-	int evaluationSteps[3*N];
-	long long sum = 0;
+	uint64_t evaluationSteps[3*N];
+	uint64_t sum = 0;
 	for(int i = 0; i < 3*N; i++) {
 		// printf("%d\n", selectedPopulationEval[i]);
 		invert[i] = totalPopulationEval[idxArr[3*N-1]] / totalPopulationEval[idxArr[i]];
@@ -165,14 +165,14 @@ void tSelection()
 		
 	}
 	int tempSel[N][MAX_GNA_LENGTH];
-	int tempEval[N];
+	uint32_t tempEval[N];
 	arrncpy(tempEval, selectedPopulationEval, N);
 	arrncpy(tempSel[0], selectedPopulation[0], N*MAX_GNA_LENGTH);
 
 	int sidxArr[N];
 	for(int i=0; i<N; i++)
 		idxArr[i] = i;
-	qsort(idxArr, N, sizeof(int), cmpfuncS);
+	qsort(idxArr, N, sizeof(uint32_t), cmpfuncS);
 	for(int i=0; i<N; i++)
 	{
 		arrncpy(selectedPopulation[i], tempSel[idxArr[i]], MAX_GNA_LENGTH);
@@ -224,7 +224,7 @@ void evalPop()
 		}
 		else 
 			// sprintf(prog, "int exec%d(int x, int y)\n{\nreturn %s;\n}\n", i, "65535");
-			totalPopulationEval[i] = UINT16_MAX;
+			totalPopulationEval[i] = UINT32_MAX/2;
 	}
 	// time_t end = clock_gettime();
 	clock_gettime(CLOCK_MONOTONIC, &end);
@@ -331,7 +331,7 @@ int main(int argc, char** argv)
 	int idxArr[N];
 	for(int i=0; i<N; i++)
 		idxArr[i] = i;
-	qsort(idxArr, N, sizeof(int), cmpfunc);
+	qsort(idxArr, N, sizeof(uint32_t), cmpfunc);
 	for(int i=0; i<N; i++)
 	{
 		arrncpy(selectedPopulation[i], totalPopulation[idxArr[i]], MAX_GNA_LENGTH);
@@ -386,5 +386,6 @@ int main(int argc, char** argv)
 	printf("Avg disk i\\o time: %lld\n", diskTimeStat/NGEN);
 	printf("Avg mapping time: %lld\n", mapTimeStat/NGEN);
 	printf("HashHits: %d,  Hash inserts: %d\n", hashhit, incount);
+	printf("GE var params: N=%d; NPoints=%d\n", N, EVALPOINTSNUM);
 	return 0;
 }
