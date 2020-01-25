@@ -3,10 +3,11 @@
 #include <time.h>
 #include <math.h>
 #include "generator.c"
+#include "hash.c"
 
-#define MAX_GNA_LENGTH 40
-#define N 2000			// Population size
-#define NGEN 100 			// Number of generations
+#define MAX_GNA_LENGTH 20
+#define N 10000			// Population size
+#define NGEN 20 			// Number of generations
 // #define CXPB 0.9 			// Cross over probability
 // #define MUTPR 1.0 			// Mutation probability
 #define GMP 0.3 			// Gen mutation probability
@@ -17,6 +18,18 @@ int selectedPopulationEval[N];
 int totalPopulationEval[3*N];
 int best[MAX_GNA_LENGTH];
 int bestEval = UINT16_MAX;
+
+long long mutTimeStat;
+long long crossTimeStat;
+long long selTimeStat;
+long long evalTimeStat;
+long long diskTimeStat;
+long long mapTimeStat;
+int incount;
+int hashhit;
+
+char totalPopulationExpr[2*N][exprMAXSIZE];
+struct table * htable;
 
 int findRangeUsingBinarySearch(int* arr, int size, int val) {
 	// printf("%d - size \n", size);
@@ -195,57 +208,84 @@ void evalPop()
 		char expr[exprMAXSIZE];
 		strcpy(expr, "<e><o><e>");
 		if(genExpr(expr, totalPopulation[i], MAX_GNA_LENGTH))
+		{
+			totalPopulationEval[i] = lookup(htable, expr);
+			if(totalPopulationEval[i] == -1)
+			{
+			strcpy(totalPopulationExpr[i], expr);
 			sprintf(prog, "int exec%d(int x, int y)\n{\nreturn %s;\n}\n", i, expr);
+			strcat(allprog,prog);
+			}
+			else
+			{
+				hashhit++;
+			}
+			
+		}
 		else 
-			sprintf(prog, "int exec%d(int x, int y)\n{\nreturn %s;\n}\n", i, "65535");
-		strcat(allprog,prog);
-		totalPopulationEval[i] = strlen(expr);
+			// sprintf(prog, "int exec%d(int x, int y)\n{\nreturn %s;\n}\n", i, "65535");
+			totalPopulationEval[i] = UINT16_MAX;
 	}
 	// time_t end = clock_gettime();
 	clock_gettime(CLOCK_MONOTONIC, &end);
 	printf("Done, time spent = %ld\n", timespecDiff(&end,&start));
+	mapTimeStat+=timespecDiff(&end, &start);
 
-	printf("Disk I\\O.....");
-	fflush(stdout);
-	// begin = clock_gettime();
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	FILE *fp;
-	char filePath[30];
-	sprintf(filePath, "temp/generated_all.c");
-	
-	fp = fopen(filePath, "w+");
-	fputs(allprog, fp);
-	fclose(fp);
-
-	char gccCall[100];
-	sprintf(gccCall, "gcc -fPIC -O -shared temp/generated_all.c -o temp/individual_all.so");
-	system(gccCall);
-
-	void *handle;
-	char indvPath[30];
-	sprintf(indvPath, "temp/individual_all.so");
-	handle = dlopen(indvPath, RTLD_LAZY);
-	if (!handle) {
-		/* fail to load the library */
-		fprintf(stderr, "Error: %s\n", dlerror());
-	}
-
-	// end = clock_gettime();
-	clock_gettime(CLOCK_MONOTONIC, &end);
-	printf("Done, time spent = %ld\n", timespecDiff(&end,&start));
-
-	printf("Eval time.....");
-	fflush(stdout);
-	// begin = clock_gettime();
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	for(int i=0; i<2*N; i++)
+	if(!strlen(allprog))
 	{
-		totalPopulationEval[i]+=evaluate_F(i, handle);
+		printf("Nothing new to evaluate\n");
 	}
-	dlclose(handle);
-	// end = clock_gettime();
-	clock_gettime(CLOCK_MONOTONIC, &end);
-	printf("Done, time spent = %ld\n", timespecDiff(&end,&start));
+	else
+	{
+		printf("Disk I\\O.....");
+		fflush(stdout);
+		// begin = clock_gettime();
+		clock_gettime(CLOCK_MONOTONIC, &start);
+		
+		FILE *fp;
+		char filePath[30];
+		sprintf(filePath, "temp/generated_all.c");
+		
+		fp = fopen(filePath, "w+");
+		fputs(allprog, fp);
+		fclose(fp);
+
+		char gccCall[100];
+		sprintf(gccCall, "gcc -fPIC -O -shared temp/generated_all.c -o temp/individual_all.so");
+		system(gccCall);
+
+		void *handle;
+		char indvPath[30];
+		sprintf(indvPath, "temp/individual_all.so");
+		handle = dlopen(indvPath, RTLD_LAZY);
+		if (!handle) {
+			/* fail to load the library */
+			fprintf(stderr, "Error: %s\n", dlerror());
+		}
+
+		// end = clock_gettime();
+		clock_gettime(CLOCK_MONOTONIC, &end);
+		printf("Done, time spent = %ld\n", timespecDiff(&end,&start));
+		diskTimeStat+=timespecDiff(&end, &start);
+		printf("Eval time.....");
+		fflush(stdout);
+		// begin = clock_gettime();
+		clock_gettime(CLOCK_MONOTONIC, &start);
+		for(int i=0; i<2*N; i++)
+		{
+			if(totalPopulationEval[i] == -1)
+			{
+				totalPopulationEval[i]=evaluate_F(i, handle)+strlen(totalPopulationExpr[i]);
+				insert(htable, totalPopulationExpr[i], totalPopulationEval[i]);
+				incount++;
+			}
+		}
+		dlclose(handle);
+		// end = clock_gettime();
+		clock_gettime(CLOCK_MONOTONIC, &end);
+		printf("Done, time spent = %ld\n", timespecDiff(&end,&start));
+		evalTimeStat+=timespecDiff(&end, &start);
+	}
 
 }
 
@@ -274,6 +314,7 @@ int main(int argc, char** argv)
 {
 	// init_genrand64(clock_gettime());
 	initTestData();
+	htable = createTable(2*N);
 	rMGL = sqrt(sqrt(MAX_GNA_LENGTH * 1.0));
 	// create random instances
 	printf("Creating random instances\n");
@@ -311,6 +352,7 @@ int main(int argc, char** argv)
 	// time_t end = clock_gettime();
 	clock_gettime(CLOCK_MONOTONIC, &end);
 	printf("Done, spent time = %ld\n", timespecDiff(&end, &start));
+	crossTimeStat+=timespecDiff(&end, &start);
 	// mutate
 	printf("Mutation time......");
 	fflush(stdout);
@@ -320,6 +362,7 @@ int main(int argc, char** argv)
 	// end = clock_gettime();
 	clock_gettime(CLOCK_MONOTONIC, &end);
 	printf("Done, spent time = %ld\n", timespecDiff(&end, &start));
+	mutTimeStat+=timespecDiff(&end, &start);
 	evalPop();
 	// evaluate and do selection
 	printf("Selection time......");
@@ -331,10 +374,17 @@ int main(int argc, char** argv)
 	// end = clock_gettime();
 	clock_gettime(CLOCK_MONOTONIC, &end);
 	printf("Done, spent time = %ld\n", timespecDiff(&end, &start));
+	selTimeStat+=timespecDiff(&end, &start);
 	printf("------------------\n");
 	}
 	printf("Best: ");
 	showInd(best, MAX_GNA_LENGTH, bestEval);
-
+	printf("Avg mutation time: %lld\n", mutTimeStat/NGEN);
+	printf("Avg crossover time: %lld\n", crossTimeStat/NGEN);
+	printf("Avg selection time: %lld\n", selTimeStat/NGEN);
+	printf("Avg evaluation time: %lld\n", evalTimeStat/NGEN);
+	printf("Avg disk i\\o time: %lld\n", diskTimeStat/NGEN);
+	printf("Avg mapping time: %lld\n", mapTimeStat/NGEN);
+	printf("HashHits: %d,  Hash inserts: %d\n", hashhit, incount);
 	return 0;
 }

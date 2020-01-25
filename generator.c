@@ -81,10 +81,10 @@ int runInd_F(int indvNum, int x, int y, void* handle)
 
 int idealfunc(int x, int y)
 {
-	return x*x + x*y+1;
+	return x*x + x*y + y*y + 3;
 }
 
-#define EVALPOINTSNUM 1000
+#define EVALPOINTSNUM 100
 int x[EVALPOINTSNUM];
 int y[EVALPOINTSNUM];
 void initTestData()
